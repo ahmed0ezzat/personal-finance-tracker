@@ -104,7 +104,7 @@
   }
   
   .reset-btn {
-    background-color: #ff4d4d;
+    background-color: #2c3e50;
     color: white;
     padding: 8px 16px;
     border: none;
@@ -117,7 +117,7 @@
   }
   
   .reset-btn:hover {
-    background-color: #cc0000;
+    background-color: black;
   }
   </style>
   

@@ -115,13 +115,13 @@ export default {
 
       if (form.value.amount < 0 && form.value.category === 'income') {
         transactionError.value = true;
-        transactionErrorMessage.value = 'Income can not be negative';
+        transactionErrorMessage.value = 'Income can not be negative; the amount should be positive.';
         return;
       }
 
       if (form.value.amount > 0 && form.value.category !== 'income') {
         transactionError.value = true;
-        transactionErrorMessage.value = 'Expences can not be positive';
+        transactionErrorMessage.value = 'Expenses cannot be positive; the amount should be negative.';
         return;
       }
 
