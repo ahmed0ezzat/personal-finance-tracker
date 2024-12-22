@@ -31,7 +31,7 @@
           <input type="date" v-model="form.date" id="date" required />
         </div>
         <div v-if="transactionError" class="error-message">
-          <p>{{transactionErrorMessage}}</p>
+          <p>{{ transactionErrorMessage }}</p>
         </div>
         <div class="modal-actions">
           <button type="button" @click="closeModal" class="cancel-btn">Cancel</button>
@@ -42,120 +42,114 @@
   </div>
 </template>
 
-<script>
-import { ref, watch, computed } from 'vue';
+<script setup>
+import { ref, computed, watch, defineProps } from 'vue';
 import { useStore } from 'vuex';
 
-export default {
-  name: 'TransactionModal',
-  props: {
-    isVisible: {
-      type: Boolean,
-      required: true
-    },
-    transactionToEdit: {
-      type: Object,
-      default: null
-    }
+// Props and emits
+const props = defineProps({
+  isVisible: {
+    type: Boolean,
+    required: true,
   },
-  emits: ['close', 'add-transaction', 'edit-transaction'],
-  setup(props, { emit }) {
-    const store = useStore();
+  transactionToEdit: {
+    type: Object,
+    default: null,
+  },
+});
+// eslint-disable-next-line no-undef
+const emit = defineEmits(['close', 'add-transaction', 'edit-transaction']);
 
-    const transactionError = ref(false);
-    const transactionErrorMessage = ref('');
-    // Function to get today's date in YYYY-MM-DD format
-      const getTodayDate = () => {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-    const form = ref({
-      amount: '',
-      category: '',
-      date: getTodayDate(),
-      currency: 'USD',
-    });
+// Vuex store
+const store = useStore();
 
-    const isEditMode = ref(false);
-    // Currencies available from the Vuex store
-    const currencies = computed(() => store.getters['transactions/allAvailableCurrencies']);
-    const resetForm = () => {
-      form.value.amount = '';
-      form.value.category = '';
-      form.value.date = getTodayDate();
-      form.value.currency = 'USD';
-      transactionError.value = false;
-      transactionErrorMessage.value = '';
-    };
-    // Watch for when a transaction is passed to edit
-    watch(() => props.transactionToEdit, (newTransaction) => {
-      if (newTransaction) {
-        isEditMode.value = true;
-        form.value.amount = newTransaction.amount;
-        form.value.category = newTransaction.category;
-        form.value.date = newTransaction.date;
-        form.value.currency = newTransaction.currency;
-      } else {
-        isEditMode.value = false;
-        resetForm()
-      }
-    });
+// Form and state management
+const transactionError = ref(false);
+const transactionErrorMessage = ref('');
+const isEditMode = ref(false);
 
-    // Close the modal
-    const closeModal = () => {
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const form = ref({
+  amount: '',
+  category: '',
+  date: getTodayDate(),
+  currency: 'USD',
+});
+
+const currencies = computed(() => store.getters['transactions/allAvailableCurrencies']);
+
+const resetForm = () => {
+  form.value = {
+    amount: '',
+    category: '',
+    date: getTodayDate(),
+    currency: 'USD',
+  };
+  transactionError.value = false;
+  transactionErrorMessage.value = '';
+};
+
+// Watch for transactionToEdit prop
+watch(
+  () => props.transactionToEdit,
+  (newTransaction) => {
+    if (newTransaction) {
+      isEditMode.value = true;
+      form.value.amount = newTransaction.amount;
+      form.value.category = newTransaction.category;
+      form.value.date = newTransaction.date;
+      form.value.currency = newTransaction.currency;
+    } else {
+      isEditMode.value = false;
       resetForm();
-      emit('close');
-    };
+    }
+  }
+);
 
-    // Handle form submission
-    const handleSubmit = () => {
+// Close modal
+const closeModal = () => {
+  resetForm();
+  emit('close');
+};
 
-      if (form.value.amount < 0 && form.value.category === 'income') {
-        transactionError.value = true;
-        transactionErrorMessage.value = 'Income can not be negative; the amount should be positive.';
-        return;
-      }
+// Handle form submission
+const handleSubmit = () => {
+  if (form.value.amount < 0 && form.value.category === 'income') {
+    transactionError.value = true;
+    transactionErrorMessage.value = 'Income cannot be negative; the amount should be positive.';
+    return;
+  }
 
-      if (form.value.amount > 0 && form.value.category !== 'income') {
-        transactionError.value = true;
-        transactionErrorMessage.value = 'Expenses cannot be positive; the amount should be negative.';
-        return;
-      }
+  if (form.value.amount > 0 && form.value.category !== 'income') {
+    transactionError.value = true;
+    transactionErrorMessage.value = 'Expenses cannot be positive; the amount should be negative.';
+    return;
+  }
 
-      transactionError.value = false;
-      transactionErrorMessage.value = '';
+  transactionError.value = false;
+  transactionErrorMessage.value = '';
 
+  const transaction = {
+    id: isEditMode.value ? props.transactionToEdit.id : null,
+    amount: parseFloat(form.value.amount),
+    category: form.value.category,
+    date: form.value.date,
+    currency: form.value.currency,
+  };
 
-      const transaction = {
-        id: isEditMode.value ? props.transactionToEdit.id : null,
-        amount: parseFloat(form.value.amount),
-        category: form.value.category,
-        date: form.value.date,
-        currency: form.value.currency,
-      };
-
-      if (isEditMode.value) {
-        emit('edit-transaction', transaction);
-      } else {
-        emit('add-transaction', transaction);
-      }
-      closeModal();
-    };
-    return {
-      form,
-      isEditMode,
-      closeModal,
-      handleSubmit,
-      currencies,
-      resetForm,
-      transactionError,
-      transactionErrorMessage
-    };
-  },
-
+  if (isEditMode.value) {
+    emit('edit-transaction', transaction);
+  } else {
+    emit('add-transaction', transaction);
+  }
+  closeModal();
 };
 </script>
 
@@ -193,16 +187,9 @@ label {
   margin-bottom: 5px;
 }
 
-input {
-  width: 96%;
-  padding: 8px;
-  margin-top: 5px;
-  font-size: 16px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
+input,
 select {
-  width: 100%;
+  width: 96%;
   padding: 8px;
   margin-top: 5px;
   font-size: 16px;

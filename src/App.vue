@@ -5,22 +5,17 @@
   </div>
 </template>
 
-<script>
-import { onMounted } from 'vue';
-import { useStore } from 'vuex';
-export default {
-  name: 'App',
-  components: {
-  },
-  setup(){
-    const store = useStore();
-    onMounted(() => {
-        // Load stored transactions when the app initializes
-        store.dispatch('transactions/loadTransactionsFromLocalStorage');
-        store.dispatch('transactions/fetchExchangeRates');
-      });
-  }
-}
+<script setup>
+import { onMounted } from "vue";
+import { useStore } from "vuex";
+
+const store = useStore();
+
+onMounted(() => {
+  // Load stored transactions when the app initializes
+  store.dispatch("transactions/loadTransactionsFromLocalStorage");
+  store.dispatch("transactions/fetchExchangeRates");
+});
 </script>
 
 <style>

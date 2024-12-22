@@ -1,28 +1,42 @@
 <template>
- <div class="transaction-list">
-  <div v-if="filteredTransactions.length">
-    <h2 >Transactions</h2>
-    <button @click="navigateToSummary" class="financial-display">Display Your Financial Summary</button>
-    <Export />
-  </div >
-    <TransactionFilter v-if="transactions.length > 0" @update-filters="updateFilters" />
+  <div class="transaction-list">
+    <div v-if="filteredTransactions.length">
+      <h2>Transactions</h2>
+      <button @click="navigateToSummary" class="financial-display">
+        Display Your Financial Summary
+      </button>
+      <Export />
+    </div>
+    <TransactionFilter
+      v-if="transactions.length > 0"
+      @update-filters="updateFilters"
+    />
     <div v-if="filteredTransactions.length === 0" class="no-transactions">
       <p>No transactions to display. Start adding some.</p>
     </div>
     <ul v-else>
-      <li 
-        v-for="transaction in filteredTransactions" :key="transaction.id" 
+      <li
+        v-for="transaction in filteredTransactions"
+        :key="transaction.id"
         class="transaction-item"
-        :class="transaction.amount > 0 ? 'income': 'expense' "
+        :class="transaction.amount > 0 ? 'income' : 'expense'"
       >
         <div class="transaction-details">
           <span class="category">{{ transaction.category }}</span>
-          <span class="amount">{{ transaction.amount < 0 ? '-' : '' }}${{ Math.abs(transaction.amount) }}</span>
+          <span class="amount"
+            >{{ transaction.amount < 0 ? "-" : "" }}${{
+              Math.abs(transaction.amount)
+            }}</span
+          >
           <span class="date">{{ formatDate(transaction.date) }}</span>
         </div>
         <div class="transaction-actions">
-          <button @click="editTransaction(transaction)" class="edit-btn">Edit</button>
-          <button @click="confirmDelete(transaction.id)" class="delete-btn">Delete</button>
+          <button @click="editTransaction(transaction)" class="edit-btn">
+            Edit
+          </button>
+          <button @click="confirmDelete(transaction.id)" class="delete-btn">
+            Delete
+          </button>
         </div>
       </li>
     </ul>
@@ -32,135 +46,87 @@
       <div class="popup-content">
         <p>Are you sure you want to delete this transaction?</p>
         <button @click="cancelDelete" class="cancel-btn">No</button>
-        <button @click="deleteTransaction(selectedTransactionId)" class="confirm-btn">Yes</button>
+        <button
+          @click="deleteTransaction(selectedTransactionId)"
+          class="confirm-btn"
+        >
+          Yes
+        </button>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import { computed, ref } from 'vue';
-import { useStore } from 'vuex';
-import TransactionFilter from './TransactionFilter.vue';
-import Export from './Export.vue';
-import { useRouter } from 'vue-router';
+<script setup>
+import { computed, ref } from "vue";
+import { useStore } from "vuex";
+import TransactionFilter from "./TransactionFilter.vue";
+import Export from "./Export.vue";
+import { useRouter } from "vue-router";
 
+// eslint-disable-next-line no-undef
+const emit = defineEmits(["edit-transaction"]);
+const store = useStore();
+const router = useRouter();
 
-export default {
-  name: 'TransactionList',
-  components: { TransactionFilter, Export },
-  emits: ['edit-transaction'],
-  setup(props,{ emit } ) {
-    const store = useStore();
-    const router = useRouter();
-    
-    // Editable transaction states
-    const isEditing = ref(false);
-    const editingTransactionId = ref(null);
-    const editAmount = ref('');
-    const editCategory = ref('');
-    const editDate = ref('');
-    const category = ref('');
+// Delete confirmation state
+const showConfirmDelete = ref(false);
+const selectedTransactionId = ref(null);
+const filters = ref({ startDate: "", endDate: "", category: "" });
 
-    // Delete confirmation state
-    const showConfirmDelete = ref(false);
-    const selectedTransactionId = ref(null);
-    const filters = ref({ startDate: '', endDate: '', category: '' });
-    
-    // Get all transactions from Vuex store
-    const transactions = computed(() => store.getters['transactions/allTransactions']);
+// Get all transactions from Vuex store
+const transactions = computed(
+  () => store.getters["transactions/allTransactions"]
+);
 
-    const filteredTransactions = computed(() => {
-      return transactions.value.filter((transaction) => {
-        const isWithinDateRange =
-          (!filters.value.startDate || new Date(transaction.date) >= new Date(filters.value.startDate)) &&
-          (!filters.value.endDate || new Date(transaction.date) <= new Date(filters.value.endDate));
-        const matchesCategory =
-          !filters.value.category || transaction.category === filters.value.category;
-        return isWithinDateRange && matchesCategory;
-      });
-    });
+const filteredTransactions = computed(() => {
+  return transactions.value.filter((transaction) => {
+    const isWithinDateRange =
+      (!filters.value.startDate ||
+        new Date(transaction.date) >= new Date(filters.value.startDate)) &&
+      (!filters.value.endDate ||
+        new Date(transaction.date) <= new Date(filters.value.endDate));
+    const matchesCategory =
+      !filters.value.category ||
+      transaction.category === filters.value.category;
+    return isWithinDateRange && matchesCategory;
+  });
+});
 
-    const navigateToSummary = () => {
-      router.push('/financial-summary');
-    };
-    const updateFilters = (newFilters) => {
-      filters.value = newFilters;
-    };
+const navigateToSummary = () => {
+  router.push("/financial-summary");
+};
+const updateFilters = (newFilters) => {
+  filters.value = newFilters;
+};
 
-    // Delete a transaction
-    const deleteTransaction = (id) => {
-      store.dispatch('transactions/deleteTransaction', id);
-      showConfirmDelete.value = false;
-    };
+// Delete a transaction
+const deleteTransaction = (id) => {
+  store.dispatch("transactions/deleteTransaction", id);
+  showConfirmDelete.value = false;
+};
 
-    // Edit a transaction
-    const editTransaction = (transaction) => {
-      emit('edit-transaction', transaction);
-    };
+// Edit a transaction
+const editTransaction = (transaction) => {
+  emit("edit-transaction", transaction);
+};
 
-    // Save the edited transaction
-    const saveTransaction = (id) => {
-      const updatedTransaction = {
-        id,
-        amount: editAmount.value,
-        category: editCategory.value,
-        date: editDate.value,
-        currency: 'USD',
-      };
-      store.dispatch('transactions/editTransaction', updatedTransaction);
-      cancelEdit(); // Reset editing state after saving
-    };
+// Show delete confirmation popup
+const confirmDelete = (id) => {
+  selectedTransactionId.value = id;
+  showConfirmDelete.value = true;
+};
 
-    // Cancel editing
-    const cancelEdit = () => {
-      editingTransactionId.value = null;
-      editAmount.value = '';
-      editCategory.value = '';
-      editDate.value = '';
-      isEditing.value = false;
-    };
+// Cancel delete action
+const cancelDelete = () => {
+  showConfirmDelete.value = false;
+  selectedTransactionId.value = null;
+};
 
-    // Show delete confirmation popup
-    const confirmDelete = (id) => {
-      selectedTransactionId.value = id;
-      showConfirmDelete.value = true;
-    };
-
-    // Cancel delete action
-    const cancelDelete = () => {
-      showConfirmDelete.value = false;
-      selectedTransactionId.value = null;
-    };
-
-    // Format date to a more user-friendly format (e.g., 'MM/DD/YYYY')
-    const formatDate = (date) => {
-      const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-      return new Date(date).toLocaleDateString(undefined, options);
-    };
-
-    return {
-      transactions,
-      deleteTransaction,
-      editTransaction,
-      saveTransaction,
-      cancelEdit,
-      confirmDelete,
-      cancelDelete,
-      formatDate,
-      showConfirmDelete,
-      selectedTransactionId,
-      editingTransactionId,
-      editAmount,
-      editCategory,
-      editDate,
-      isEditing,
-      category,
-      filteredTransactions,
-      updateFilters,
-      navigateToSummary
-    };
-  }
+// Format date to a more user-friendly format (e.g., 'MM/DD/YYYY')
+const formatDate = (date) => {
+  const options = { year: "numeric", month: "2-digit", day: "2-digit" };
+  return new Date(date).toLocaleDateString(undefined, options);
 };
 </script>
 
