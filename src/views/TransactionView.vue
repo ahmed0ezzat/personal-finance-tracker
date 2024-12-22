@@ -31,7 +31,6 @@
       TransactionModal,
       TransactionList
     },
-    emits: ['edit-transaction'],
     setup() {
       const store = useStore();
       const transactions = computed(() => store.getters['transactions/allTransactions']);
