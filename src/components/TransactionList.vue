@@ -1,17 +1,26 @@
 <template>
-  <div class="transaction-list">
-    <h2>Transactions</h2>
-    <div v-if="transactions.length === 0" class="no-transactions">
-      <p>No transactions to display</p>
+ <div class="transaction-list">
+  <div v-if="filteredTransactions.length">
+    <h2 >Transactions</h2>
+    <button @click="navigateToSummary" class="financial-display">Display Your Financial Summary</button>
+    <Export />
+  </div >
+    <TransactionFilter v-if="transactions.length > 0" @update-filters="updateFilters" />
+    <div v-if="filteredTransactions.length === 0" class="no-transactions">
+      <p>No transactions to display. Start adding some.</p>
     </div>
     <ul v-else>
-      <li v-for="transaction in transactions" :key="transaction.id" class="transaction-item">
+      <li 
+        v-for="transaction in filteredTransactions" :key="transaction.id" 
+        class="transaction-item"
+        :class="transaction.amount > 0 ? 'income': 'expense' "
+      >
         <div class="transaction-details">
           <span class="category">{{ transaction.category }}</span>
-          <span class="amount">{{ transaction.amount < 0 ? '-' : '' }}${{ transaction.amount }}</span>
+          <span class="amount">{{ transaction.amount < 0 ? '-' : '' }}${{ Math.abs(transaction.amount) }}</span>
           <span class="date">{{ formatDate(transaction.date) }}</span>
         </div>
-        <div v-if="!editingTransactionId && !isEditing" class="transaction-actions">
+        <div class="transaction-actions">
           <button @click="editTransaction(transaction)" class="edit-btn">Edit</button>
           <button @click="confirmDelete(transaction.id)" class="delete-btn">Delete</button>
         </div>
@@ -32,16 +41,19 @@
 <script>
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
+import TransactionFilter from './TransactionFilter.vue';
+import Export from './Export.vue';
+import { useRouter } from 'vue-router';
+
 
 export default {
   name: 'TransactionList',
+  components: { TransactionFilter, Export },
   emits: ['edit-transaction'],
   setup(props,{ emit } ) {
     const store = useStore();
+    const router = useRouter();
     
-    // Get all transactions from Vuex store
-    const transactions = computed(() => store.getters['transactions/allTransactions']);
-
     // Editable transaction states
     const isEditing = ref(false);
     const editingTransactionId = ref(null);
@@ -50,12 +62,31 @@ export default {
     const editDate = ref('');
     const category = ref('');
 
-    // Categories available for transactions
-    const categories = ['Food', 'Transportation', 'Bills', 'General'];
-
     // Delete confirmation state
     const showConfirmDelete = ref(false);
     const selectedTransactionId = ref(null);
+    const filters = ref({ startDate: '', endDate: '', category: '' });
+    
+    // Get all transactions from Vuex store
+    const transactions = computed(() => store.getters['transactions/allTransactions']);
+
+    const filteredTransactions = computed(() => {
+      return transactions.value.filter((transaction) => {
+        const isWithinDateRange =
+          (!filters.value.startDate || new Date(transaction.date) >= new Date(filters.value.startDate)) &&
+          (!filters.value.endDate || new Date(transaction.date) <= new Date(filters.value.endDate));
+        const matchesCategory =
+          !filters.value.category || transaction.category === filters.value.category;
+        return isWithinDateRange && matchesCategory;
+      });
+    });
+
+    const navigateToSummary = () => {
+      router.push('/financial-summary');
+    };
+    const updateFilters = (newFilters) => {
+      filters.value = newFilters;
+    };
 
     // Delete a transaction
     const deleteTransaction = (id) => {
@@ -125,8 +156,9 @@ export default {
       editDate,
       isEditing,
       category,
-      categories
-
+      filteredTransactions,
+      updateFilters,
+      navigateToSummary
     };
   }
 };
@@ -144,7 +176,16 @@ export default {
 
 h2 {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
+}
+.financial-display {
+  margin-bottom: 15px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  color: #4caf51;
+  font-size: 14px;
 }
 
 .no-transactions {
@@ -169,6 +210,12 @@ ul {
   background-color: #fff;
 }
 
+.transaction-item.income {
+  background: #e9f4e9;
+}
+.transaction-item.expense {
+  background: #f2e7e7;
+}
 .transaction-details {
   display: flex;
   justify-content: space-between;
@@ -238,6 +285,7 @@ ul {
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  margin: 3px;
 }
 
 .save-btn:hover {
@@ -270,11 +318,12 @@ ul {
 .confirm-btn {
   background-color: #007bff;
   color: white;
-  padding: 5px 10px;
+  padding: 6px 15px;
   margin-right: 10px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  margin: 3px;
 }
 
 .cancel-btn {

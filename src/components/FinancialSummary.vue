@@ -3,52 +3,36 @@
       <h3>Financial Summary</h3>
       <div class="summary-item">
         <span>Total Income:</span>
-        <span class="amount">{{ totalIncome }}</span>
+        <span class="amount positive">{{ totalIncome }} <span class="currency">/USD</span></span>
       </div>
       <div class="summary-item">
         <span>Total Expenses:</span>
-        <span class="amount">{{ totalExpenses }}</span>
+        <span class="amount negative">{{ Math.abs(totalExpenses) }} <span class="currency">/USD</span></span>
       </div>
       <div class="summary-item">
         <span>Net Balance:</span>
-        <span class="amount">{{ netBalance }}</span>
+        <span class="amount positive">{{ netBalance }} <span class="currency">/USD</span></span>
       </div>
     </div>
   </template>
   
   <script>
-  import { computed, toRefs } from 'vue';
-//   import { useStore } from 'vuex';
+  import { computed } from 'vue';
+  import { useStore } from 'vuex';
   
   export default {
     name: 'FinancialSummary',
-    props: {
-      transactions: {
-        type: Array,
-        required: true
-      }
-    },
-    setup(props) {
-     const { transactions } = toRefs(props);
-  
+    setup() {
+    const store = useStore();
+
       // Calculate total income
-      const totalIncome = computed(() => {
-        return transactions
-          .filter(transaction => transaction.amount > 0)
-          .reduce((sum, transaction) => sum + transaction.amount, 0);
-      });
+      const totalIncome = computed(() => store.getters['transactions/totalIncome'])
   
       // Calculate total expenses
-      const totalExpenses = computed(() => {
-        return transactions
-          .filter(transaction => transaction.amount < 0)
-          .reduce((sum, transaction) => sum + transaction.amount, 0);
-      });
+      const totalExpenses = computed(() => store.getters['transactions/totalExpenses'])
   
       // Calculate net balance
-      const netBalance = computed(() => {
-        return totalIncome.value + totalExpenses.value;
-      });
+      const netBalance = computed(() => store.getters['transactions/netBalance'])
   
       return {
         totalIncome,
@@ -61,10 +45,12 @@
   
   <style scoped>
   .financial-summary {
-    background-color: #f9f9f9;
-    padding: 15px;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ddd;
     border-radius: 8px;
-    margin: 20px 0;
+    background-color: #f9f9f9;
   }
   
   h3 {
@@ -82,5 +68,16 @@
     font-weight: bold;
     color: #333;
   }
+.amount.negative {
+  color: red;
+}
+
+.amount.positive {
+  color: green;
+}
+.amount .currency {
+  color: #333;
+  font-size: 10px;
+}
   </style>
   

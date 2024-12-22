@@ -1,13 +1,13 @@
 <template>
-    <div class="expense-chart">
+    <div class="expense-chart" v-if="!noExpenses">
       <h3>Expense Breakdown by Category</h3>
-      <pie-chart :data="chartData" />
+      <pie-chart :data="chartData"  />
     </div>
   </template>
   
   <script>
-  import { computed, toRefs } from 'vue';
-//   import { useStore } from 'vuex';
+  import { computed } from 'vue';
+  import { useStore } from 'vuex';
   import { Pie } from 'vue-chartjs';
   import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement, CategoryScale } from 'chart.js';
   
@@ -19,29 +19,23 @@
     components: {
       PieChart: Pie
     },
-    props: {
-      transactions: {
-        type: Array,
-        required: true
-      }
-    },
-    setup(props) {
-      // Access props directly inside setup() to ensure reactivity
-      const { transactions } = toRefs(props)
+    setup() {
+      const store = useStore();
+      const transactions = computed(() => store.getters['transactions/allTransactions'])
   
       // Group transactions by category
       const categorizedExpenses = computed(() => {
-        const categories = ['Food', 'Transportation', 'Bills', 'General'];
-        const expensesByCategory = { Food: 0, Transportation: 0, Bills: 0, General: 0 };
+        const categories = ['food', 'transportation', 'bills', 'general'];
+        const expensesByCategory = {  Food: 0, Transportation: 0, Bills: 0, General: 0 };
   
-        transactions.forEach(transaction => {
-          if (transaction.amount < 0 && categories.includes(transaction.category)) {
+        transactions.value.forEach(transaction => {
+          if (transaction.amount < 0 && categories.includes(transaction.category.toLowerCase())) {
             expensesByCategory[transaction.category] += Math.abs(transaction.amount); // Add expense
           }
         });
-  
         return expensesByCategory;
       });
+      const noExpenses = Object.values(categorizedExpenses.value).every(v => v === 0)
   
       // Prepare data for the chart
       const chartData = computed(() => {
@@ -61,7 +55,8 @@
       });
   
       return {
-        chartData
+        chartData,
+        noExpenses
       };
     }
   };
@@ -69,10 +64,12 @@
   
   <style scoped>
   .expense-chart {
-    background-color: #f9f9f9;
-    padding: 15px;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ddd;
     border-radius: 8px;
-    margin: 20px 0;
+    background-color: #f9f9f9;
   }
   
   h3 {

@@ -5,11 +5,13 @@
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
           <label for="amount">Amount</label>
-          <input type="number" v-model="form.amount" id="amount" required />
+          <input type="number" placeholder="Amount" v-model="form.amount" id="amount" required />
         </div>
         <div class="form-group">
           <label for="category">Category</label>
-          <select v-model="form.category" id="category" required>
+          <select placeholder="Select Category" v-model="form.category" id="category" required>
+            <option value="" disabled>Select a category</option>
+            <option value="income">Income</option>
             <option value="Food">Food</option>
             <option value="Transportation">Transportation</option>
             <option value="Bills">Bills</option>
@@ -27,6 +29,9 @@
         <div class="form-group">
           <label for="date">Date</label>
           <input type="date" v-model="form.date" id="date" required />
+        </div>
+        <div v-if="transactionError" class="error-message">
+          <p>{{transactionErrorMessage}}</p>
         </div>
         <div class="modal-actions">
           <button type="button" @click="closeModal" class="cancel-btn">Cancel</button>
@@ -56,10 +61,21 @@ export default {
   emits: ['close', 'add-transaction', 'edit-transaction'],
   setup(props, { emit }) {
     const store = useStore();
+
+    const transactionError = ref(false);
+    const transactionErrorMessage = ref('');
+    // Function to get today's date in YYYY-MM-DD format
+      const getTodayDate = () => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
     const form = ref({
       amount: '',
       category: '',
-      date: '',
+      date: getTodayDate(),
       currency: 'USD',
     });
 
@@ -69,12 +85,13 @@ export default {
     const resetForm = () => {
       form.value.amount = '';
       form.value.category = '';
-      form.value.date = '';
+      form.value.date = getTodayDate();
       form.value.currency = 'USD';
+      transactionError.value = false;
+      transactionErrorMessage.value = '';
     };
     // Watch for when a transaction is passed to edit
     watch(() => props.transactionToEdit, (newTransaction) => {
-      console.log('newTransaction', newTransaction)
       if (newTransaction) {
         isEditMode.value = true;
         form.value.amount = newTransaction.amount;
@@ -82,7 +99,6 @@ export default {
         form.value.date = newTransaction.date;
         form.value.currency = newTransaction.currency;
       } else {
-        console.log('else.....')
         isEditMode.value = false;
         resetForm()
       }
@@ -90,11 +106,29 @@ export default {
 
     // Close the modal
     const closeModal = () => {
+      resetForm();
       emit('close');
     };
 
     // Handle form submission
     const handleSubmit = () => {
+
+      if (form.value.amount < 0 && form.value.category === 'income') {
+        transactionError.value = true;
+        transactionErrorMessage.value = 'Income can not be negative';
+        return;
+      }
+
+      if (form.value.amount > 0 && form.value.category !== 'income') {
+        transactionError.value = true;
+        transactionErrorMessage.value = 'Expences can not be positive';
+        return;
+      }
+
+      transactionError.value = false;
+      transactionErrorMessage.value = '';
+
+
       const transaction = {
         id: isEditMode.value ? props.transactionToEdit.id : null,
         amount: parseFloat(form.value.amount),
@@ -116,7 +150,9 @@ export default {
       closeModal,
       handleSubmit,
       currencies,
-      resetForm
+      resetForm,
+      transactionError,
+      transactionErrorMessage
     };
   },
 
@@ -157,7 +193,14 @@ label {
   margin-bottom: 5px;
 }
 
-input,
+input {
+  width: 96%;
+  padding: 8px;
+  margin-top: 5px;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
 select {
   width: 100%;
   padding: 8px;

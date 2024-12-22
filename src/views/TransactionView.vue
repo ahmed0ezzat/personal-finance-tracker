@@ -20,7 +20,7 @@
   </template>
   
   <script>
-  import { computed, ref, onMounted } from 'vue';
+  import { computed, ref } from 'vue';
   import { useStore } from 'vuex';
   import TransactionModal from '../components/TransactionModal.vue';
   import TransactionList from '../components/TransactionList.vue';
@@ -83,12 +83,6 @@
         const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
         return new Date(date).toLocaleDateString(undefined, options);
       };
-
-      onMounted(() => {
-        // Load stored transactions when the app initializes
-        store.dispatch('transactions/loadTransactionsFromLocalStorage');
-        store.dispatch('transactions/fetchExchangeRates');
-      });
 
       return {
         transactions,

@@ -1,10 +1,11 @@
 <template>
     <div>
-      <button @click="exportCSV">Export to CSV</button>
+      <button class="export" @click="exportCSV">Export to CSV</button>
     </div>
   </template>
   
   <script>
+  import { computed } from 'vue';
   import { useStore } from 'vuex';
   
   export default {
@@ -13,9 +14,9 @@
       const store = useStore();
   
       const exportCSV = () => {
-        const transactions = store.getters['transactions.allTransactions'];
+        const transactions = computed(() => store.getters['transactions/allTransactions']);
         let csvContent = 'ID,Amount,Category,Date,Currency\n';
-        transactions.forEach(transaction => {
+        transactions.value.forEach(transaction => {
           csvContent += `${transaction.id},${transaction.amount},${transaction.category},${transaction.date},${transaction.currency}\n`;
         });
   
@@ -33,4 +34,15 @@
     }
   };
   </script>
+  <style scoped>
+    .export {
+      margin-bottom: 15px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      color: #4caf51;
+      font-size: 14px;
+    }
+  </style>
   
