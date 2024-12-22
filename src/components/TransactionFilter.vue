@@ -12,6 +12,7 @@
         <label for="category">Category</label>
         <select id="category" v-model="filters.category">
           <option value="">All</option>
+          <option value="income">Income</option>
           <option value="Food">Food</option>
           <option value="Transportation">Transportation</option>
           <option value="Bills">Bills</option>
